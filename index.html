@@ -6,33 +6,71 @@
     <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
   </head>
   <body style="font-family: sans-serif; padding: 40px;">
-    <h2>NVD Learning – Question Image Upload</h2>
-    <p>Upload JPG or PNG image. Copy the URL after upload.</p>
+  <h2>NVD Learning – Image Upload</h2>
+  <p>Upload one image per question. Click “Copy URL” after each upload.</p>
 
-    <button id="uploadBtn">Upload Image</button>
+  <button id="uploadBtn" style="padding:10px 16px;font-size:16px;">
+    Upload Image(s)
+  </button>
 
-    <div id="result" style="margin-top: 20px;"></div>
+  <div id="grid"
+       style="display:grid;
+              grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+              gap:16px;
+              margin-top:30px;">
+  </div>
 
-    <script>
-      const widget = cloudinary.createUploadWidget(
-        {
-          cloudName: "dpdbtl8on",
-          uploadPreset: "nvd-teacher-uploads"
-        },
-        (error, result) => {
-          if (!error && result && result.event === "success") {
-            document.getElementById("result").innerHTML = `
-              <p><strong>Upload successful!</strong></p>
-              <p>Copy this URL:</p>
-              <input type="text" value="${result.info.secure_url}" style="width:100%" readonly />
-            `;
-          }
+  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+
+  <script>
+    const grid = document.getElementById("grid");
+
+    const widget = cloudinary.createUploadWidget(
+      {
+        cloudName: "dpdbtl8on",
+        uploadPreset: "nvd-client-vision-pune",
+        multiple: true
+      },
+      (error, result) => {
+        if (!error && result && result.event === "success") {
+          addImageCard(result.info);
         }
-      );
+      }
+    );
 
-      document.getElementById("uploadBtn").onclick = () => {
-        widget.open();
+    document.getElementById("uploadBtn").onclick = () => widget.open();
+
+    function addImageCard(info) {
+      const card = document.createElement("div");
+      card.style.border = "1px solid #ddd";
+      card.style.padding = "10px";
+      card.style.borderRadius = "8px";
+      card.style.textAlign = "center";
+
+      const img = document.createElement("img");
+      img.src = info.thumbnail_url;
+      img.style.maxWidth = "100%";
+      img.style.height = "120px";
+      img.style.objectFit = "contain";
+
+      const btn = document.createElement("button");
+      btn.innerText = "Copy URL";
+      btn.style.marginTop = "10px";
+      btn.style.padding = "6px 10px";
+      btn.style.cursor = "pointer";
+
+      btn.onclick = () => {
+        navigator.clipboard.writeText(info.secure_url);
+        btn.innerText = "Copied ✓";
+        btn.style.backgroundColor = "#16a34a";
+        btn.style.color = "#fff";
+        btn.disabled = true;
       };
-    </script>
+
+      card.appendChild(img);
+      card.appendChild(btn);
+      grid.appendChild(card);
+    }
+  </script>
   </body>
 </html>
