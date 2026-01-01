@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>NVD Learning – Image Upload</title>
+    <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+  </head>
+  <body style="font-family: sans-serif; padding: 40px;">
+    <h2>NVD Learning – Question Image Upload</h2>
+    <p>Upload JPG or PNG image. Copy the URL after upload.</p>
+
+    <button id="uploadBtn">Upload Image</button>
+
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script>
+      const widget = cloudinary.createUploadWidget(
+        {
+          cloudName: "dpdbtl8on",
+          uploadPreset: "nvd-teacher-uploads"
+        },
+        (error, result) => {
+          if (!error && result && result.event === "success") {
+            document.getElementById("result").innerHTML = `
+              <p><strong>Upload successful!</strong></p>
+              <p>Copy this URL:</p>
+              <input type="text" value="${result.info.secure_url}" style="width:100%" readonly />
+            `;
+          }
+        }
+      );
+
+      document.getElementById("uploadBtn").onclick = () => {
+        widget.open();
+      };
+    </script>
+  </body>
+</html>
