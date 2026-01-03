@@ -8,186 +8,211 @@
 
 <body style="font-family: Arial, sans-serif; padding: 40px; background:#fafafa;">
 
-  <h2>NVD Learning – Image Upload</h2>
-  <p style="max-width:600px;">
-    Upload images and copy the generated URL into the
-    <b>image_url</b> column of your CSV.
-  </p>
+<h2>NVD Learning – Image Upload</h2>
+<p style="max-width:650px;">
+Upload images and copy the generated URL into the
+<b>image_url</b> column of your CSV.
+</p>
 
-  <!-- Controls -->
-  <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
-    <button id="uploadBtn" style="padding:12px 18px; font-size:16px;">
-      Upload Image(s)
-    </button>
+<!-- Controls -->
+<div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+  <button id="uploadBtn" style="padding:12px 18px; font-size:16px;">
+    Upload Image(s)
+  </button>
 
-    <select id="sortSelect" style="padding:8px;">
-      <option value="newest">Sort: Newest first</option>
-      <option value="az">Sort: Filename A–Z</option>
-    </select>
-  </div>
+  <select id="sortSelect" style="padding:8px;">
+    <option value="newest">Sort: Newest first</option>
+    <option value="az">Sort: Filename A–Z</option>
+  </select>
 
-  <!-- Search -->
-  <div style="margin-top:20px;">
-    <input
-      type="text"
-      id="searchInput"
-      placeholder="Search by filename (e.g. 45, Q45, logic)"
-      style="padding:10px; width:100%; max-width:420px;"
-    />
-  </div>
+  <button id="clearBtn"
+          style="padding:10px 14px; font-size:14px; background:#eee; cursor:pointer;">
+    Clear All
+  </button>
+</div>
 
-  <!-- Summary -->
-  <div id="summary"
-       style="margin-top:12px; font-size:14px; color:#444;">
-    Uploaded: 0 | Copied: 0 | Pending: 0
-  </div>
+<!-- Search -->
+<div style="margin-top:20px;">
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="Search by filename (e.g. 45, Q45, logic)"
+    style="padding:10px; width:100%; max-width:420px;"
+  />
+</div>
 
-  <!-- Grid -->
-  <div id="grid"
-       style="
-         display:grid;
-         grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
-         gap:16px;
-         margin-top:25px;
-       ">
-  </div>
+<!-- Summary -->
+<div id="summary"
+     style="margin-top:12px; font-size:14px; color:#444;">
+  Uploaded: 0 | Copied: 0 | Pending: 0
+</div>
 
-  <!-- Cloudinary -->
-  <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
+<!-- Grid -->
+<div id="grid"
+     style="
+       display:grid;
+       grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+       gap:16px;
+       margin-top:25px;
+     ">
+</div>
 
-  <script>
-    /* ================= CONFIG ================= */
-    const CLOUD_NAME = "dpdbtl8on";          // <-- CHANGE
-    const UPLOAD_PRESET = "catalyst-group-latur";    // <-- CHANGE
+<!-- Cloudinary -->
+<script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
 
-    /* ================= STATE ================= */
-    const grid = document.getElementById("grid");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
-    const summary = document.getElementById("summary");
+<script>
+/* ================= CONFIG ================= */
+const CLOUD_NAME = "YOUR_CLOUD_NAME";        // <-- CHANGE
+const UPLOAD_PRESET = "YOUR_UPLOAD_PRESET";  // <-- CHANGE
 
-    const uploadedFilenames = {};
-    let cards = [];
-    let copiedCount = 0;
+/* ================= STATE ================= */
+const grid = document.getElementById("grid");
+const searchInput = document.getElementById("searchInput");
+const sortSelect = document.getElementById("sortSelect");
+const summary = document.getElementById("summary");
+const uploadedFilenames = {};
 
-    /* ================= WIDGET ================= */
-    const widget = cloudinary.createUploadWidget(
-      {
-        cloudName: CLOUD_NAME,
-        uploadPreset: UPLOAD_PRESET,
-        multiple: true
-      },
-      (error, result) => {
-        if (!error && result && result.event === "success") {
-          addImageCard(result.info);
-          updateSummary();
-        }
-      }
-    );
+let cards = [];
+let copiedCount = 0;
 
-    document.getElementById("uploadBtn").onclick = () => widget.open();
+/* ================= UPLOAD WIDGET ================= */
+const widget = cloudinary.createUploadWidget(
+  {
+    cloudName: CLOUD_NAME,
+    uploadPreset: UPLOAD_PRESET,
+    multiple: true
+  },
+  (error, result) => {
+    if (!error && result && result.event === "success") {
+      addImageCard(result.info);
+      updateSummary();
+    }
+  }
+);
 
-    /* ================= CARD CREATION ================= */
-    function addImageCard(info) {
-      const filenameLower = info.original_filename.toLowerCase();
-      uploadedFilenames[filenameLower] =
-        (uploadedFilenames[filenameLower] || 0) + 1;
+document.getElementById("uploadBtn").onclick = () => widget.open();
 
-      const card = document.createElement("div");
-      card.style.border = "1px solid #ddd";
-      card.style.padding = "10px";
-      card.style.borderRadius = "8px";
-      card.style.background = "#fff";
-      card.style.textAlign = "center";
-      card.dataset.filename = filenameLower;
+/* ================= ADD IMAGE CARD ================= */
+function addImageCard(info) {
+  const filenameLower = info.original_filename.toLowerCase();
+  uploadedFilenames[filenameLower] =
+    (uploadedFilenames[filenameLower] || 0) + 1;
+
+  const card = document.createElement("div");
+  card.style.border = "1px solid #ddd";
+  card.style.padding = "10px";
+  card.style.borderRadius = "8px";
+  card.style.background = "#fff";
+  card.style.textAlign = "center";
+  card.dataset.filename = filenameLower;
+  card.dataset.copied = "false";
+
+  // Thumbnail
+  const img = document.createElement("img");
+  img.src = info.thumbnail_url;
+  img.style.width = "100%";
+  img.style.height = "120px";
+  img.style.objectFit = "contain";
+
+  // Filename
+  const name = document.createElement("div");
+  name.innerText = info.original_filename;
+  name.style.marginTop = "6px";
+  name.style.fontSize = "13px";
+  name.style.fontWeight = "600";
+  name.style.wordBreak = "break-all";
+
+  // Duplicate warning
+  let warning = null;
+  if (uploadedFilenames[filenameLower] > 1) {
+    warning = document.createElement("div");
+    warning.innerText = "⚠ Duplicate filename";
+    warning.style.color = "#b45309";
+    warning.style.fontSize = "12px";
+    warning.style.marginTop = "4px";
+  }
+
+  // Copy / Uncopy button
+  const btn = document.createElement("button");
+  btn.innerText = "Copy URL";
+  btn.style.marginTop = "8px";
+  btn.style.padding = "6px 10px";
+  btn.style.cursor = "pointer";
+
+  btn.onclick = () => {
+    if (card.dataset.copied === "true") {
+      // Uncopy
       card.dataset.copied = "false";
-
-      // Thumbnail
-      const img = document.createElement("img");
-      img.src = info.thumbnail_url;
-      img.style.width = "100%";
-      img.style.height = "120px";
-      img.style.objectFit = "contain";
-
-      // Filename
-      const name = document.createElement("div");
-      name.innerText = info.original_filename;
-      name.style.marginTop = "6px";
-      name.style.fontSize = "13px";
-      name.style.fontWeight = "600";
-      name.style.wordBreak = "break-all";
-
-      // Duplicate warning
-      let warning = null;
-      if (uploadedFilenames[filenameLower] > 1) {
-        warning = document.createElement("div");
-        warning.innerText = "⚠ Duplicate filename";
-        warning.style.color = "#b45309";
-        warning.style.fontSize = "12px";
-        warning.style.marginTop = "4px";
-      }
-
-      // Copy button (re-copy allowed)
-      const btn = document.createElement("button");
+      copiedCount--;
       btn.innerText = "Copy URL";
-      btn.style.marginTop = "8px";
-      btn.style.padding = "6px 10px";
-      btn.style.cursor = "pointer";
-
-      btn.onclick = () => {
-        navigator.clipboard.writeText(info.secure_url);
-        if (card.dataset.copied === "false") {
-          card.dataset.copied = "true";
-          copiedCount++;
-        }
-        btn.innerText = "Copied ✓";
-        btn.style.backgroundColor = "#16a34a";
-        btn.style.color = "#fff";
-        updateSummary();
-      };
-
-      card.appendChild(img);
-      card.appendChild(name);
-      if (warning) card.appendChild(warning);
-      card.appendChild(btn);
-
-      cards.push(card);
-      renderCards();
+      btn.style.backgroundColor = "";
+      btn.style.color = "";
+    } else {
+      // Copy
+      navigator.clipboard.writeText(info.secure_url);
+      card.dataset.copied = "true";
+      copiedCount++;
+      btn.innerText = "Copied ✓";
+      btn.style.backgroundColor = "#16a34a";
+      btn.style.color = "#fff";
     }
+    updateSummary();
+  };
 
-    /* ================= RENDER / SORT ================= */
-    function renderCards() {
-      grid.innerHTML = "";
-      let sorted = [...cards];
+  card.appendChild(img);
+  card.appendChild(name);
+  if (warning) card.appendChild(warning);
+  card.appendChild(btn);
 
-      if (sortSelect.value === "az") {
-        sorted.sort((a, b) =>
-          a.dataset.filename.localeCompare(b.dataset.filename)
-        );
-      }
+  cards.push(card);
+  renderCards();
+}
 
-      sorted.forEach(card => grid.appendChild(card));
-    }
+/* ================= SORT ================= */
+function renderCards() {
+  grid.innerHTML = "";
+  let sorted = [...cards];
 
-    sortSelect.addEventListener("change", renderCards);
+  if (sortSelect.value === "az") {
+    sorted.sort((a, b) =>
+      a.dataset.filename.localeCompare(b.dataset.filename)
+    );
+  }
 
-    /* ================= SEARCH ================= */
-    searchInput.addEventListener("input", () => {
-      const q = searchInput.value.toLowerCase();
-      cards.forEach(card => {
-        card.style.display =
-          card.dataset.filename.includes(q) ? "" : "none";
-      });
-    });
+  sorted.forEach(card => grid.appendChild(card));
+}
 
-    /* ================= SUMMARY ================= */
-    function updateSummary() {
-      const total = cards.length;
-      const pending = total - copiedCount;
-      summary.innerText =
-        `Uploaded: ${total} | Copied: ${copiedCount} | Pending: ${pending}`;
-    }
-  </script>
+sortSelect.addEventListener("change", renderCards);
+
+/* ================= SEARCH ================= */
+searchInput.addEventListener("input", () => {
+  const q = searchInput.value.toLowerCase();
+  cards.forEach(card => {
+    card.style.display =
+      card.dataset.filename.includes(q) ? "" : "none";
+  });
+});
+
+/* ================= CLEAR ALL ================= */
+document.getElementById("clearBtn").onclick = () => {
+  grid.innerHTML = "";
+  cards = [];
+  copiedCount = 0;
+
+  for (const k in uploadedFilenames) delete uploadedFilenames[k];
+
+  searchInput.value = "";
+  updateSummary();
+};
+
+/* ================= SUMMARY ================= */
+function updateSummary() {
+  const total = cards.length;
+  const pending = total - copiedCount;
+  summary.innerText =
+    `Uploaded: ${total} | Copied: ${copiedCount} | Pending: ${pending}`;
+}
+</script>
 
 </body>
 </html>
