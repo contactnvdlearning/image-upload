@@ -10,54 +10,67 @@
 
   <h2>NVD Learning – Image Upload</h2>
   <p style="max-width:600px;">
-    Upload one image per question.  
-    After uploading, copy the image URL and paste it into the
+    Upload images and copy the generated URL into the
     <b>image_url</b> column of your CSV.
   </p>
 
-  <!-- Upload button -->
-  <button
-    id="uploadBtn"
-    style="padding:12px 18px; font-size:16px; cursor:pointer;"
-  >
-    Upload Image(s)
-  </button>
+  <!-- Controls -->
+  <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+    <button id="uploadBtn" style="padding:12px 18px; font-size:16px;">
+      Upload Image(s)
+    </button>
 
-  <!-- Search bar -->
+    <select id="sortSelect" style="padding:8px;">
+      <option value="newest">Sort: Newest first</option>
+      <option value="az">Sort: Filename A–Z</option>
+    </select>
+  </div>
+
+  <!-- Search -->
   <div style="margin-top:20px;">
     <input
       type="text"
       id="searchInput"
-      placeholder="Search images by filename (e.g. 45, Q45, logic)"
-      style="padding:10px; width:100%; max-width:420px; font-size:14px;"
+      placeholder="Search by filename (e.g. 45, Q45, logic)"
+      style="padding:10px; width:100%; max-width:420px;"
     />
   </div>
 
-  <!-- Grid -->
-  <div
-    id="grid"
-    style="
-      display:grid;
-      grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
-      gap:16px;
-      margin-top:25px;
-    "
-  ></div>
+  <!-- Summary -->
+  <div id="summary"
+       style="margin-top:12px; font-size:14px; color:#444;">
+    Uploaded: 0 | Copied: 0 | Pending: 0
+  </div>
 
-  <!-- Cloudinary widget -->
+  <!-- Grid -->
+  <div id="grid"
+       style="
+         display:grid;
+         grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));
+         gap:16px;
+         margin-top:25px;
+       ">
+  </div>
+
+  <!-- Cloudinary -->
   <script src="https://widget.cloudinary.com/v2.0/global/all.js"></script>
 
   <script>
-    // ===== CONFIG =====
-    const CLOUD_NAME = "dpdbtl8on";              // <-- CHANGE THIS
-    const UPLOAD_PRESET = "catalyst-group-latur";        // <-- CHANGE THIS
+    /* ================= CONFIG ================= */
+    const CLOUD_NAME = "dpdbtl8on";          // <-- CHANGE
+    const UPLOAD_PRESET = "catalyst-group-latur";    // <-- CHANGE
 
-    // ===== STATE =====
+    /* ================= STATE ================= */
     const grid = document.getElementById("grid");
     const searchInput = document.getElementById("searchInput");
-    const uploadedFilenames = {};
+    const sortSelect = document.getElementById("sortSelect");
+    const summary = document.getElementById("summary");
 
-    // ===== UPLOAD WIDGET =====
+    const uploadedFilenames = {};
+    let cards = [];
+    let copiedCount = 0;
+
+    /* ================= WIDGET ================= */
     const widget = cloudinary.createUploadWidget(
       {
         cloudName: CLOUD_NAME,
@@ -67,13 +80,14 @@
       (error, result) => {
         if (!error && result && result.event === "success") {
           addImageCard(result.info);
+          updateSummary();
         }
       }
     );
 
     document.getElementById("uploadBtn").onclick = () => widget.open();
 
-    // ===== ADD IMAGE CARD =====
+    /* ================= CARD CREATION ================= */
     function addImageCard(info) {
       const filenameLower = info.original_filename.toLowerCase();
       uploadedFilenames[filenameLower] =
@@ -86,6 +100,7 @@
       card.style.background = "#fff";
       card.style.textAlign = "center";
       card.dataset.filename = filenameLower;
+      card.dataset.copied = "false";
 
       // Thumbnail
       const img = document.createElement("img");
@@ -102,7 +117,7 @@
       name.style.fontWeight = "600";
       name.style.wordBreak = "break-all";
 
-      // Duplicate warning (non-blocking)
+      // Duplicate warning
       let warning = null;
       if (uploadedFilenames[filenameLower] > 1) {
         warning = document.createElement("div");
@@ -112,7 +127,7 @@
         warning.style.marginTop = "4px";
       }
 
-      // Copy URL button
+      // Copy button (re-copy allowed)
       const btn = document.createElement("button");
       btn.innerText = "Copy URL";
       btn.style.marginTop = "8px";
@@ -121,30 +136,57 @@
 
       btn.onclick = () => {
         navigator.clipboard.writeText(info.secure_url);
+        if (card.dataset.copied === "false") {
+          card.dataset.copied = "true";
+          copiedCount++;
+        }
         btn.innerText = "Copied ✓";
         btn.style.backgroundColor = "#16a34a";
         btn.style.color = "#fff";
-        btn.disabled = true;
+        updateSummary();
       };
 
-      // Assemble card
       card.appendChild(img);
       card.appendChild(name);
       if (warning) card.appendChild(warning);
       card.appendChild(btn);
-      grid.appendChild(card);
+
+      cards.push(card);
+      renderCards();
     }
 
-    // ===== SEARCH / FILTER =====
-    searchInput.addEventListener("input", () => {
-      const query = searchInput.value.toLowerCase();
-      const cards = document.querySelectorAll("#grid > div");
+    /* ================= RENDER / SORT ================= */
+    function renderCards() {
+      grid.innerHTML = "";
+      let sorted = [...cards];
 
+      if (sortSelect.value === "az") {
+        sorted.sort((a, b) =>
+          a.dataset.filename.localeCompare(b.dataset.filename)
+        );
+      }
+
+      sorted.forEach(card => grid.appendChild(card));
+    }
+
+    sortSelect.addEventListener("change", renderCards);
+
+    /* ================= SEARCH ================= */
+    searchInput.addEventListener("input", () => {
+      const q = searchInput.value.toLowerCase();
       cards.forEach(card => {
-        const filename = card.dataset.filename || "";
-        card.style.display = filename.includes(query) ? "" : "none";
+        card.style.display =
+          card.dataset.filename.includes(q) ? "" : "none";
       });
     });
+
+    /* ================= SUMMARY ================= */
+    function updateSummary() {
+      const total = cards.length;
+      const pending = total - copiedCount;
+      summary.innerText =
+        `Uploaded: ${total} | Copied: ${copiedCount} | Pending: ${pending}`;
+    }
   </script>
 
 </body>
